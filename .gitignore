@@ -1,0 +1,9 @@
+# The scenario under test and its eval data are private and must never be committed.
+private/
+results/
+.env
+.env.*
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
