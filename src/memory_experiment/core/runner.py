@@ -59,7 +59,7 @@ async def run_one(scenario: Scenario, backend_name: str, case: EvalCase, trial: 
     )
 
 
-async def run_suite(scenario: Scenario, backends: list[str], trials: int, model: str, out_dir: Path, concurrency: int = 6, max_steps: int = 12, case_ids: list[str] | None = None) -> list[RunRecord]:
+async def run_suite(scenario: Scenario, backends: list[str], trials: int, model: str, out_dir: Path, concurrency: int = 6, max_steps: int = 12, case_ids: list[str] | None = None, trial_start: int = 1) -> list[RunRecord]:
     out_dir.mkdir(parents=True, exist_ok=True)
     cases = [c for c in scenario.cases if not case_ids or c.id in case_ids]
     sem = asyncio.Semaphore(concurrency)
@@ -85,10 +85,11 @@ async def run_suite(scenario: Scenario, backends: list[str], trials: int, model:
         "scenario": scenario.name,
         "model": model,
         "trials": trials,
+        "trial_start": trial_start,
         "backends": {b: make_backend(b).spec() for b in backends},
         "n_cases": len(cases),
         "started": datetime.now(timezone.utc).isoformat(),
     }
     (out_dir / "meta.json").write_text(json.dumps(meta, indent=2))
-    await asyncio.gather(*(job(b, c, t) for t in range(1, trials + 1) for b in backends for c in cases))
+    await asyncio.gather(*(job(b, c, t) for t in range(trial_start, trial_start + trials) for b in backends for c in cases))
     return records

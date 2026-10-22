@@ -40,6 +40,20 @@ class EvalCase:
     notes: str = ""
 
 
+@dataclass
+class Experience:
+    """A grouping used by experience-oriented layouts: one 'document' that mixes
+    observations (facts from the listed categories) with data rows from the
+    listed tables. `row_filter(table, row) -> bool` narrows which rows belong."""
+
+    path: str  # e.g. "travel" -> exposed as /travel.md
+    title: str
+    categories: list[str] = field(default_factory=list)
+    tables: list[str] = field(default_factory=list)
+    row_filter: Callable[[str, dict[str, Any]], bool] | None = None
+    summary: str = ""
+
+
 Grader = Callable[[dict[str, Any], "dict[str, Any] | None"], tuple[float, str]]
 
 
@@ -55,6 +69,7 @@ class Scenario:
     cases: list[EvalCase]
     grader: Grader | None = None
     fact_table_name: str = "preferences"  # table name when facts are stored relationally
+    experiences: list[Experience] | None = None  # optional grouping for experience-based layouts
 
 
 @dataclass

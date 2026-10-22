@@ -7,3 +7,5 @@ results/
 __pycache__/
 *.pyc
 .DS_Store
+gateway/chat_turn_bin
+gateway/.baml/

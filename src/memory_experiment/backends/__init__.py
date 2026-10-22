@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from ..core.backend import MemoryBackend
+from .experience_fs import ExperienceFsBackend
 from .fs_prefs_plus_sql import FsPrefsPlusSqlBackend
 from .sql_only import SqlOnlyBackend
 from .virtual_fs import VirtualFsBackend
@@ -10,6 +11,7 @@ REGISTRY: dict[str, type[MemoryBackend]] = {
     FsPrefsPlusSqlBackend.name: FsPrefsPlusSqlBackend,
     SqlOnlyBackend.name: SqlOnlyBackend,
     VirtualFsBackend.name: VirtualFsBackend,
+    ExperienceFsBackend.name: ExperienceFsBackend,
 }
 
 
