@@ -18,6 +18,7 @@ Postgres backs every layout so storage cost is held constant.
 | `fs_prefs_plus_sql` | real markdown files (`MEMORY.md` + `preferences/<topic>.md`) | Postgres | `list_dir`, `read_file`, `sql_query` |
 | `sql_only` | `preferences` table | Postgres | `sql_query` |
 | `virtual_fs` | Postgres, rendered as `/memory/...` | Postgres, rendered as `/data/<table>/...` | `list_dir`, `read_file`, `search` |
+| `plain_fs` | real markdown files | real markdown files (`data/<table>.md`, `data/<table>/<id>.md`), no database | `list_dir`, `read_file`, `grep` |
 | `experience_fs` | Postgres `experiences` + `experience_items`: observations grouped with related rows into one document each | same tables, reached through the experience they belong to | `list_dir`, `read_file`, `search` |
 
 Adding a layout = one file in `src/memory_experiment/backends/` subclassing
