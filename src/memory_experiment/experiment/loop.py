@@ -26,8 +26,12 @@ async def run_experiment(workload: Workload, memory_models: list[str], trials: i
         nonlocal done
         async with sem:
             rec = await run_case(workload, mm, c, t, model, max_steps)
-            g = await workload.grader.grade(workload, c, rec.answer, rec.final_text)
-        rec.score, rec.passed, rec.grade_reason = g.score, g.passed, g.reason
+            try:
+                g = await workload.grader.grade(workload, c, rec.answer, rec.final_text)
+                rec.score, rec.passed, rec.grade_reason = g.score, g.passed, g.reason
+            except Exception as e:  # noqa: BLE001 - a grader failure must not kill the experiment
+                rec.score, rec.passed, rec.grade_reason = 0.0, False, f"grader error: {type(e).__name__}: {str(e)[:200]}"
+                rec.error = rec.error or f"grader: {type(e).__name__}"
         async with lock:
             records.append(rec)
             with runs_path.open("a") as f:

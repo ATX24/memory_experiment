@@ -5,6 +5,12 @@
 // Tool calls are not executed here: they are returned to the caller as
 // `tool_calls`, exactly like a hosted chat-completions endpoint.
 
+// Final (non-tool) output always travels in this wrapper: Claude Code's --json-schema
+// needs an object schema, and a bare string schema makes the CLI exit 1.
+class FreeText {
+  text string
+}
+
 function chat_turn(req_json: string, model: string, timeout_ms: int) -> string {
   let req = baml.json.parse(req_json);
   let messages = baml.json.path_or<json[]>(req, ".messages", []);
@@ -73,7 +79,7 @@ function chat_turn(req_json: string, model: string, timeout_ms: int) -> string {
     prompt: render,
     journal: journal,
     toolbox: toolbox,
-    output_type: reflect.Type.of<string>(),
+    output_type: reflect.Type.of<FreeText>(),
   });
 
   // ---- OpenAI response ----
@@ -82,9 +88,9 @@ function chat_turn(req_json: string, model: string, timeout_ms: int) -> string {
   for (let b in turn.content) {
     match (b) {
       let t: ai.content.Text => {
-        // the final outcome arrives JSON-encoded (output_type is string)
-        let unq = baml.json.from_string<string>(t.text) catch_all (e) { _ => t.text };
-        text_out.push(unq);
+        // the final outcome arrives as JSON for FreeText; unwrap it
+        let unq = baml.json.from_string<FreeText>(t.text) catch_all (e) { _ => FreeText { text: t.text } };
+        text_out.push(unq.text);
       },
       let c: ai.content.ToolUse => {
         tool_calls.push({
