@@ -1,9 +1,9 @@
-"""Layout C: everything is in Postgres, but the agent only sees a virtual
+"""Memory model C: everything is in Postgres, but the agent only sees a virtual
 filesystem. Paths are addresses; contents are rendered at read time from the
 rows the current user may access. Nothing is materialised on disk.
 
     /memory/MEMORY.md                 index of preference topics
-    /memory/preferences/<topic>.md    rendered from the preferences table (user-scoped)
+    /memory/topics/<topic>.md    rendered from the memory table (principal-scoped)
     /data/<table>/_schema.md          columns + description
     /data/<table>/all.md              every row as a markdown table
     /data/<table>/<pk>.md             one row
@@ -15,26 +15,28 @@ from typing import Any
 
 from psycopg import sql
 
-from ..core.backend import MemoryBackend
-from ..core.db import CaseDB
-from ..core.render import facts_to_markdown, row_to_markdown, rows_to_markdown
-from ..core.types import EvalCase, Fact, Scenario, ToolSpec
+from .base import MemoryModel, MemoryState
+from .render import facts_to_markdown, row_to_markdown, rows_to_markdown
+from ..eval.types import Fact, ToolSpec
 from ._common import PATH_SCHEMA, create_fact_table
 
 
-class VirtualFsBackend(MemoryBackend):
+class VirtualFs(MemoryModel):
     name = "virtual_fs"
+    memory_lives_in = "Postgres table `memory`, rendered on read as /memory/<topic>.md (current principal only)"
+    data_lives_in = "Postgres tables, rendered on read as /data/<table>/all.md and /data/<table>/<id>.md"
     description = (
-        "Postgres holds preferences and operational data; the agent only gets list_dir/read_file/search over a "
+        "Postgres holds memory and operational data; the agent only gets list_dir/read_file/search over a "
         "virtual filesystem whose contents are generated from user-scoped queries at read time."
     )
 
-    def setup(self, scenario: Scenario, case: EvalCase, db: CaseDB, workdir: str) -> None:
+    def load(self, state: MemoryState) -> None:
+        db, workdir = state.db, state.workdir
         self.db = db
-        self.user_id = case.user_id
-        self.tables = {t.name: t for t in scenario.tables}
-        self.fact_table = scenario.fact_table_name
-        create_fact_table(db, self.fact_table, case.facts)
+        self.user_id = state.user_id
+        self.tables = {t.name: t for t in state.tables}
+        self.fact_table = state.fact_table_name
+        create_fact_table(db, self.fact_table, state.facts)
 
     # ---- data access (always scoped to the current user) ---------------------
     def _facts(self, category: str | None = None) -> list[Fact]:
@@ -72,8 +74,8 @@ class VirtualFsBackend(MemoryBackend):
         if not parts:
             return "memory/\ndata/"
         if parts == ["memory"]:
-            return "MEMORY.md\npreferences/"
-        if parts == ["memory", "preferences"]:
+            return "MEMORY.md\ntopics/"
+        if parts == ["memory", "topics"]:
             return "\n".join(f"{c}.md" for c in self._categories()) or "(empty)"
         if parts == ["data"]:
             return "\n".join(f"{t}/" for t in sorted(self.tables))
@@ -86,8 +88,8 @@ class VirtualFsBackend(MemoryBackend):
     def read_file(self, path: str) -> str:
         parts = [p for p in path.strip("/").split("/") if p]
         if parts == ["memory", "MEMORY.md"]:
-            return "# Memory index\n\n" + "\n".join(f"- /memory/preferences/{c}.md" for c in self._categories()) + "\n"
-        if len(parts) == 3 and parts[:2] == ["memory", "preferences"] and parts[2].endswith(".md"):
+            return "# Memory index\n\n" + "\n".join(f"- /memory/topics/{c}.md" for c in self._categories()) + "\n"
+        if len(parts) == 3 and parts[:2] == ["memory", "topics"] and parts[2].endswith(".md"):
             cat = parts[2][:-3]
             facts = self._facts(cat)
             return facts_to_markdown(cat, facts) if facts else f"ERROR: no such file {path}"
@@ -103,7 +105,7 @@ class VirtualFsBackend(MemoryBackend):
 
     def search(self, needle: str) -> str:
         n = needle.lower()
-        hits = [f"/memory/preferences/{f.category}.md: {f.content}" for f in self._facts() if n in (f.content + " " + (f.title or "")).lower()]
+        hits = [f"/memory/topics/{f.category}.md: {f.content}" for f in self._facts() if n in (f.content + " " + (f.title or "")).lower()]
         for table, t in self.tables.items():
             for r in self._rows(table):
                 text = " ".join(str(v) for v in r.values())
@@ -127,8 +129,8 @@ class VirtualFsBackend(MemoryBackend):
         tables = "\n".join(f"- /data/{n}/ : {t.description}" for n, t in sorted(self.tables.items()))
         return (
             "All memory and data is a virtual filesystem (contents are generated from the database when read):\n"
-            "- /memory/MEMORY.md : index of the user's preference topics\n"
-            "- /memory/preferences/<topic>.md : the user's preferences on a topic\n"
+            "- /memory/MEMORY.md : index of memory topics\n"
+            "- /memory/topics/<topic>.md : what you know about the principal on a topic\n"
             "- /data/<table>/_schema.md : columns; /data/<table>/all.md : every row; /data/<table>/<id>.md : one row\n"
             f"{tables}\n"
             "Tools: list_dir, read_file, search."

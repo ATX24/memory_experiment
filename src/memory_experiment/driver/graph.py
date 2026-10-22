@@ -20,7 +20,7 @@ from langchain_core.messages import AIMessage, AnyMessage, HumanMessage, SystemM
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 
-from ..core.types import AgentResult, ToolCallRecord, ToolSpec
+from ..eval.types import AgentResult, ToolCallRecord, ToolSpec
 from .model import make_model
 
 SUBMIT = "submit_answer"

@@ -1,9 +1,9 @@
-"""Layout E: a plain filesystem, nothing else. Preferences AND operational data are
+"""Memory model E: a plain filesystem, nothing else. Preferences AND operational data are
 materialised as real markdown files, the way an "instinct"/Claude Code memory
 directory works, and the agent gets the usual coding-agent trio of tools:
 
     /MEMORY.md                 index of what is where
-    /preferences/<topic>.md    one file per preference topic (current user only)
+    /memory/<topic>.md         one file per memory topic (current principal only)
     /data/<table>.md           the whole table as a markdown table
     /data/<table>/README.md    column list + description
     /data/<table>/<pk>.md      one file per row
@@ -17,33 +17,35 @@ from pathlib import Path
 
 from psycopg import sql
 
-from ..core.backend import MemoryBackend
-from ..core.db import CaseDB
-from ..core.render import facts_to_markdown, row_to_markdown, rows_to_markdown
-from ..core.types import EvalCase, Scenario, ToolSpec
+from .base import MemoryModel, MemoryState
+from .render import facts_to_markdown, row_to_markdown, rows_to_markdown
+from ..eval.types import ToolSpec
 from ._common import PATH_SCHEMA
 
 
-class PlainFsBackend(MemoryBackend):
+class PlainFs(MemoryModel):
     name = "plain_fs"
+    memory_lives_in = "real markdown files (/memory/<topic>.md), current principal only"
+    data_lives_in = "real markdown files (/data/<table>.md, /data/<table>/<id>.md); no database"
     description = (
-        "Everything is real markdown files on disk (MEMORY.md index, preferences/<topic>.md, data/<table>.md and "
+        "Everything is real markdown files on disk (MEMORY.md index, memory/<topic>.md, data/<table>.md and "
         "data/<table>/<id>.md); no database. Tools: list_dir, read_file, grep."
     )
 
-    def setup(self, scenario: Scenario, case: EvalCase, db: CaseDB, workdir: str) -> None:
+    def load(self, state: MemoryState) -> None:
+        db, workdir = state.db, state.workdir
         self.root = (Path(workdir) / "fs").resolve()
-        (self.root / "preferences").mkdir(parents=True)
+        (self.root / "memory").mkdir(parents=True)
         by_cat: dict[str, list] = {}
-        for f in case.facts:
-            if f.user_id == case.user_id:
+        for f in state.facts:
+            if f.user_id == state.user_id:
                 by_cat.setdefault(f.category, []).append(f)
-        index = ["# Memory index", "", "## Preferences (one file per topic)", ""]
+        index = ["# Memory index", "", "## Memory (one file per topic)", ""]
         for cat, facts in sorted(by_cat.items()):
-            (self.root / "preferences" / f"{cat}.md").write_text(facts_to_markdown(cat, facts))
-            index.append(f"- preferences/{cat}.md ({len(facts)} notes)")
+            (self.root / "memory" / f"{cat}.md").write_text(facts_to_markdown(cat, facts))
+            index.append(f"- memory/{cat}.md ({len(facts)} notes)")
         index += ["", "## Data", ""]
-        for t in scenario.tables:
+        for t in state.tables:
             rows = db.query(sql.SQL("SELECT * FROM {} ORDER BY {}").format(sql.Identifier(t.name), sql.Identifier(t.primary_key)))  # includes generated keys
             d = self.root / "data" / t.name
             d.mkdir(parents=True)
@@ -96,6 +98,6 @@ class PlainFsBackend(MemoryBackend):
     def layout_prompt(self) -> str:
         return (
             "Your memory and all data are plain markdown files in a directory. `/MEMORY.md` is the index; "
-            "`/preferences/<topic>.md` hold the user's preferences; `/data/<table>.md` holds a whole table and "
+            "`/memory/<topic>.md` hold what you know about the principal; `/data/<table>.md` holds a whole table and "
             "`/data/<table>/<id>.md` one row. Tools: list_dir, read_file, grep."
         )

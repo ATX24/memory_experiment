@@ -6,7 +6,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import Any
 
-from .types import Fact
+from ..eval.types import Fact
 
 
 def cell(v: Any) -> str:

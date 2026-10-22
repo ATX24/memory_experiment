@@ -9,7 +9,7 @@ import psycopg
 from psycopg import sql
 from psycopg.rows import dict_row
 
-from .types import Table
+from ..eval.types import Table
 
 DEFAULT_DSN = os.environ.get("MEMORY_EXPERIMENT_DSN", "postgresql:///memory_experiment")
 _IDENT = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")

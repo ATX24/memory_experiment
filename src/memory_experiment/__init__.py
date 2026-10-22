@@ -1,8 +1,7 @@
-"""memory_experiment: compare agent memory layouts on a task.
+"""memory_experiment: plug in a memory model, run it on a workload, grade it with a rubric.
 
-The harness is scenario-agnostic. A *scenario* (schema, seed rows, preference
-facts, eval cases, grader) is loaded from a directory at runtime; a *backend*
-(memory layout) decides how that data is exposed to the agent as tools. The
-agent itself is a LangGraph state machine calling a model through the Vercel
-AI Gateway.
+    memory_model/  how facts + data are stored and exposed to the agent as tools
+    driver/        runs one case: LangGraph agent (model -> tools -> model) over a memory model
+    eval/          workload + case types, loaders, graders (exact match, rubric judge)
+    experiment/    the loop (models x cases x trials), aggregation, report
 """

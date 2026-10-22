@@ -1,4 +1,4 @@
-"""Layout D: a database of data rows AND "experiences". An experience is a group
+"""Memory model D: a database of data rows AND "experiences". An experience is a group
 of records (observations about the user + related data rows) that mirrors one
 markdown file. The agent traverses experiences with a filesystem interface:
 
@@ -11,7 +11,7 @@ markdown file. The agent traverses experiences with a filesystem interface:
 Storage: Postgres `experiences(id, path, title, summary)` + `experience_items(experience_id,
 kind, category, text, ref_table, ref_id)` beside the operational tables; observations are
 items of kind 'observation', data membership is an item of kind 'row' pointing at a table row.
-Experience membership comes from Scenario.experiences; when absent, one experience is
+Experience membership comes from Workload.experiences; when absent, one experience is
 derived per fact category (observations only) and one per table (rows only).
 """
 from __future__ import annotations
@@ -20,31 +20,33 @@ from typing import Any
 
 from psycopg import sql
 
-from ..core.backend import MemoryBackend
-from ..core.db import CaseDB
-from ..core.render import cell, row_to_markdown, rows_to_markdown
-from ..core.types import EvalCase, Experience, Scenario, ToolSpec
+from .base import MemoryModel, MemoryState
+from .render import cell, row_to_markdown, rows_to_markdown
+from ..eval.types import Experience, ToolSpec
 from ._common import PATH_SCHEMA
 
 
-class ExperienceFsBackend(MemoryBackend):
+class ExperienceFs(MemoryModel):
     name = "experience_fs"
+    memory_lives_in = "Postgres experience_items rows of kind observation, grouped into experiences (current principal only)"
+    data_lives_in = "Postgres tables, linked into experiences by experience_items rows of kind row and rendered inside /<experience>.md"
     description = (
         "Postgres stores data rows plus 'experiences': groups of observations and related rows that each mirror "
         "one markdown document. The agent traverses experiences via list_dir/read_file/search."
     )
 
-    def setup(self, scenario: Scenario, case: EvalCase, db: CaseDB, workdir: str) -> None:
+    def load(self, state: MemoryState) -> None:
+        db, workdir = state.db, state.workdir
         self.db = db
-        self.user_id = case.user_id
-        self.tables = {t.name: t for t in scenario.tables}
+        self.user_id = state.user_id
+        self.tables = {t.name: t for t in state.tables}
         db.conn.execute("CREATE TABLE experiences (id serial primary key, path text unique not null, title text not null, summary text not null default '')")
         db.conn.execute(
             "CREATE TABLE experience_items (id serial primary key, experience_id int references experiences(id), kind text not null, "
             "category text, text text, ref_table text, ref_id text, position int not null)"
         )
-        mine = [f for f in case.facts if f.user_id == case.user_id]
-        specs = scenario.experiences or self._default_specs(mine, list(self.tables))
+        mine = [f for f in state.facts if f.user_id == state.user_id]
+        specs = state.experiences or self._default_specs(mine, list(self.tables))
         for spec in specs:
             eid = db.query("INSERT INTO experiences (path, title, summary) VALUES (%s, %s, %s) RETURNING id", (spec.path, spec.title, spec.summary))[0]["id"]
             items: list[dict[str, Any]] = []
