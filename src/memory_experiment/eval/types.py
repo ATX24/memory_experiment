@@ -115,6 +115,7 @@ class ToolCallRecord:
     duration_ms: float
     result_chars: int
     error: bool = False
+    result_text: str = ""  # first 4000 chars of what the tool returned
 
 
 @dataclass
@@ -158,3 +159,4 @@ class RunRecord:
     final_text: str
     error: str | None
     model: str
+    system_prompt: str = ""

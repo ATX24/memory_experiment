@@ -83,7 +83,7 @@ def build_graph(*, system_prompt: str, tools: list[ToolSpec], answer_schema: dic
                 text = await asyncio.to_thread(spec.handler, args)
             except Exception as e:  # noqa: BLE001 - surface to the model
                 err, text = True, f"ERROR: {type(e).__name__}: {e}"
-            records.append(ToolCallRecord(name, args, (time.perf_counter() - t0) * 1000, len(text), err))
+            records.append(ToolCallRecord(name, args, (time.perf_counter() - t0) * 1000, len(text), err, text[:4000]))
             out.append(ToolMessage(content=text, tool_call_id=call["id"]))
         return {"messages": out, "tool_records": records, "answer": answer}
 

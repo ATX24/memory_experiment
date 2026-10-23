@@ -35,5 +35,5 @@ async def run_case(workload: Workload, memory_model_name: str, case: Case, trial
         model_calls=res.model_calls, wall_ms=res.wall_ms, model_ms=res.model_ms, tool_ms=sum(t.duration_ms for t in res.tool_calls),
         tool_call_count=len(res.tool_calls), tool_result_chars=sum(t.result_chars for t in res.tool_calls),
         input_tokens=res.input_tokens, output_tokens=res.output_tokens, cache_read_tokens=res.cache_read_tokens,
-        tool_calls=[dataclasses.asdict(t) for t in res.tool_calls], final_text=res.final_text, error=res.error, model=model,
+        tool_calls=[dataclasses.asdict(t) for t in res.tool_calls], final_text=res.final_text, error=res.error, model=model, system_prompt=system,
     )
