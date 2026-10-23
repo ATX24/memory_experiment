@@ -5,10 +5,11 @@ from .base import MemoryModel, MemoryState
 from .experience_fs import ExperienceFs
 from .fs_prefs_plus_sql import FsPrefsPlusSql
 from .plain_fs import PlainFs
+from .shell_fs import ShellFs
 from .sql_only import SqlOnly
 from .virtual_fs import VirtualFs
 
-REGISTRY: dict[str, type[MemoryModel]] = {m.name: m for m in [FsPrefsPlusSql, SqlOnly, VirtualFs, ExperienceFs, PlainFs]}
+REGISTRY: dict[str, type[MemoryModel]] = {m.name: m for m in [FsPrefsPlusSql, SqlOnly, VirtualFs, ExperienceFs, PlainFs, ShellFs]}
 
 
 def make_memory_model(name: str, **options) -> MemoryModel:

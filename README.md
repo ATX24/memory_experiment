@@ -24,6 +24,7 @@ private/          real workloads + rubric data (git-ignored)
 | `virtual_fs` | Postgres, rendered on read as `/memory/topics/<topic>.md` | Postgres, rendered as `/data/<table>/...` | `list_dir`, `read_file`, `search` |
 | `experience_fs` | Postgres `experience_items` (observations) grouped into experiences | Postgres rows linked into experiences, rendered inside `/<experience>.md` | `list_dir`, `read_file`, `search` |
 | `plain_fs` | real markdown files | real markdown files, no database | `list_dir`, `read_file`, `grep` |
+| `shell_fs` | real markdown files | real markdown files, no database | one sandboxed read-only `shell` (ls, cd, cat, grep -r, find, pipes) |
 
 Add one: subclass `MemoryModel` (`load(state)`, `tools()`, `layout_prompt()`) in
 `memory_model/<name>.py` and add it to `REGISTRY`.
