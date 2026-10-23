@@ -8,8 +8,8 @@ from .base import MemoryModel, MemoryState
 
 class SqlOnly(MemoryModel):
     name = "sql_only"
-    description = "Memory is a memory(user_id, category, title, content) table beside the data tables; one read-only sql_query tool. Access control is left to the agent's WHERE clause."
-    memory_lives_in = "Postgres table `memory` holding every principal's facts"
+    description = "Memory is a memory(user_id, category, title, content) table beside the data tables; one read-only sql_query tool. "
+    memory_lives_in = "Postgres table `memory` (the acting principal's facts)"
     data_lives_in = "Postgres tables, same sql_query tool"
 
     def load(self, state: MemoryState) -> None:

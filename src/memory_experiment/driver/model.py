@@ -12,7 +12,7 @@ from langchain_openai import ChatOpenAI
 DEFAULT_GATEWAY = "https://ai-gateway.vercel.sh/v1"
 
 
-def make_model(model: str, temperature: float = 0.0, timeout: float = 120.0) -> ChatOpenAI:
+def make_model(model: str, temperature: float = 0.0, timeout: float = 300.0) -> ChatOpenAI:
     load_dotenv()
     base_url = os.environ.get("AI_GATEWAY_BASE_URL", DEFAULT_GATEWAY)
     key = os.environ.get("AI_GATEWAY_API_KEY") or os.environ.get("VERCEL_OIDC_TOKEN")

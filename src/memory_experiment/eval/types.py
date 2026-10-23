@@ -79,7 +79,10 @@ class Workload:
     description: str = ""
 
     def facts_for(self, case: Case) -> list[Fact]:
-        return case.facts if case.facts is not None else self.facts
+        """The memory state for one run: ONLY the acting principal's facts. A workload may
+        list facts for several principals (one dataset, many profiles); each run loads one."""
+        facts = case.facts if case.facts is not None else self.facts
+        return [f for f in facts if f.user_id == case.user_id]
 
     def rows_for(self, case: Case) -> dict[str, list[dict[str, Any]]]:
         merged = {t.name: list(self.rows.get(t.name, [])) for t in self.tables}
